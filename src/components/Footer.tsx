@@ -60,7 +60,7 @@ export default function Footer() {
               <button
                 key={link.href}
                 onClick={() => scrollTo(link.href)}
-                className="text-xs text-neutral-500 hover:text-white transition-colors duration-300"
+                className="text-xs text-neutral-50over:text-white transition-colors duration-300"
               >
                 {link.label}
               </button>
@@ -71,7 +71,7 @@ export default function Footer() {
           <div className="flex items-center gap-5">
             <a
               href={`mailto:${profile.email}`}
-              className="text-xs text-neutral-500 hover:text-white transition-colors duration-300"
+              className="text-xs text-neutral-50 hover:text-white transition-colors duration-300"
             >
               Email ↗
             </a>
@@ -80,7 +80,7 @@ export default function Footer() {
               href={profile.github}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-neutral-500 hover:text-white transition-colors duration-300"
+              className="text-xs text-neutral-50 hover:text-white transition-colors duration-300"
             >
               GitHub ↗
             </a>
@@ -93,18 +93,18 @@ export default function Footer() {
             inView ? "opacity-100" : "opacity-0"
           }`}
         >
-          <p className="text-[11px] text-neutral-700">
+          <p className="text-[11px] text-neutral-70">
             © {new Date().getFullYear()} {profile.name}. All rights reserved.
           </p>
 
           <div className="flex items-center gap-5">
-            <p className="text-[11px] text-neutral-700">
-              Designed & built with intention.
+            <p className="text-[11px] text-neutral-70">
+             Stay Healthy, Stay Happy! ❤️ 
             </p>
 
             <button
               onClick={() => scrollTo("#home")}
-              className="text-[11px] text-neutral-600 hover:text-white transition-colors duration-300"
+              className="text-[11px] text-neutral-60 hover:text-white transition-colors duration-300"
             >
               ↑ Top
             </button>

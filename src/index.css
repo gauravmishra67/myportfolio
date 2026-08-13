@@ -35,7 +35,7 @@ html {
 
 body {
   font-family: var(--font-sans);
-  color: #262626;
+  color: #bd2323;
   background: #c5bdac;
   overflow-x: hidden;
   cursor: default;
@@ -71,7 +71,7 @@ body {
 /* Selection */
 ::selection {
   background: #f8f4f4;
-  color: #171717;
+  color: #130e0e;
 }
 
 /* Focus styles */
@@ -118,7 +118,7 @@ body {
 
 /* Canvas container styles */
 canvas {
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 /* Smooth transitions for interactive elements */

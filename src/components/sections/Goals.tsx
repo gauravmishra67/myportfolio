@@ -58,7 +58,7 @@ export default function Goals() {
                 <div
                   className={`p-8 rounded-2xl border transition-all duration-500 hover:shadow-xl hover:shadow-neutral-100/50 ${
                     goal.status === "current"
-                      ? "bg-neutral-900 border-neutral-800 text-white"
+                      ? "bg-[#b8ad99] border-[#a89d8d] text-white"
                       : "bg-white border-neutral-100 hover:border-neutral-200"
                   } ${i === 0 ? "md:mt-12" : i === 1 ? "md:mt-12" : "md:mt-12"}`}
                 >
