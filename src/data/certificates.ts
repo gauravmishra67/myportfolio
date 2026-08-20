@@ -11,7 +11,7 @@ export const certificates: Certificate[] = [
     name: "Responsive Web Design",
     organization: "freeCodeCamp",
     date: "Your Date",
-    credentialUrl: "https://freecodecamp.org/certification/your-username/responsive-web-design",
-    image: "/certificates/freecodecamp-cert.jpg",
+    credentialUrl: "https://www.freecodecamp.org/certification/gauravkumarmishra/responsive-web-design-v9",
+    image: "/certificate.png",
   },
 ];
