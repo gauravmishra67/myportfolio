@@ -13,7 +13,7 @@ export const profile = {
   profileImage: "/profile.jpg",
   logoImage: "/logo.jpg",
   about: [
-    "Engineering student by day, UI/UX designer by practice, and storyteller at heart.",
+    "Engineering student by day, UI/UX designer by practice, and fiction writer at heart.",
     "I design functional, aesthetically sharp interfaces grounded in solid engineering principles. My background allows me to bridge the gap between design vision and technical execution.",
     "Beyond the screen, I spend my time writing fiction, listening to music, and working on creative side projects.",
   ],
@@ -29,7 +29,7 @@ export const profile = {
       icon: "✦",
     },
     {
-      title: "Storyteller",
+      title: "fiction writer",
       description: "Fiction, imagination, creativity, personal expression.",
       icon: "✍️",
     },
