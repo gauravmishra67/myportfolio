@@ -27,9 +27,9 @@ export default function LoadingScreen({ onComplete }: { onComplete: () => void }
       }`}
     >
       <div className="flex flex-col items-center gap-8">
-        <div className="w-50 h-50 rounded-xl overflow-hidden bg-neutral-900 flex items-center justify-center">
+        <div className="w-35 h-35 rounded-xl overflow-hidden bg-neutral-900 flex items-center justify-center">
           <img
-            src="/logo.jpg"
+            src="/logo.png"
             alt="Loading"
             className="w-full h-full object-cover"
             onError={(e) => {

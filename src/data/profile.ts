@@ -11,7 +11,7 @@ export const profile = {
   phone: "+977 9702070415",
   github: "https://github.com/gauravmishra67",
   profileImage: "/profile.jpg",
-  logoImage: "/logo.jpg",
+  logoImage: "/logo.png",
   about: [
     "Engineering student by day, UI/UX designer by practice, and fiction writer at heart.",
     "I design functional, aesthetically sharp interfaces grounded in solid engineering principles. My background allows me to bridge the gap between design vision and technical execution.",
