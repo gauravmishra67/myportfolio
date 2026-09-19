@@ -1,8 +1,39 @@
-import { skills } from "../../data/skills";
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 import { useInView } from "../../hooks/useInView";
+
+interface Skill {
+  name: string;
+  level: number;
+  category: string;
+  proficiency: number;
+}
 
 export default function Skills() {
   const { ref, inView } = useInView(0.1);
+
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchSkills() {
+      const { data, error } = await supabase
+        .from("skills")
+        .select("name, level, category, proficiency")
+        .order("sort_order", { ascending: true });
+
+      if (error) {
+        console.error("Failed to fetch skills:", error);
+        setLoading(false);
+        return;
+      }
+
+      setSkills(data ?? []);
+      setLoading(false);
+    }
+
+    fetchSkills();
+  }, []);
 
   return (
     <section id="skills" className="py-32 bg-neutral-50/50 relative">
@@ -27,8 +58,10 @@ export default function Skills() {
               inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
             }`}
           >
-            Tools & <span className="italic text-neutral-500">Technologies</span>
+            Tools &{" "}
+            <span className="italic text-neutral-500">Technologies</span>
           </h2>
+
           <p
             className={`text-xs text-neutral-400 uppercase tracking-wider transition-all duration-700 delay-200 ${
               inView ? "opacity-100" : "opacity-0"
@@ -40,9 +73,20 @@ export default function Skills() {
 
         {/* Skills Grid */}
         <div className="grid md:grid-cols-2 gap-6">
-          {skills.map((skill, i) => (
-            <SkillBar key={skill.name} skill={skill} index={i} animate={inView} />
-          ))}
+          {loading ? (
+            <div className="text-sm text-neutral-400">
+              Loading skills...
+            </div>
+          ) : (
+            skills.map((skill, i) => (
+              <SkillBar
+                key={skill.name}
+                skill={skill}
+                index={i}
+                animate={inView}
+              />
+            ))
+          )}
         </div>
       </div>
     </section>
@@ -54,7 +98,7 @@ function SkillBar({
   index,
   animate,
 }: {
-  skill: { name: string; level: number; category: string };
+  skill: Skill;
   index: number;
   animate: boolean;
 }) {
@@ -67,11 +111,17 @@ function SkillBar({
     >
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-base font-semibold text-neutral-800">{skill.name}</h3>
-          <span className="text-xs text-neutral-400 uppercase tracking-wider">{skill.category}</span>
+          <h3 className="text-base font-semibold text-neutral-800">
+            {skill.name}
+          </h3>
+
+          <span className="text-xs text-neutral-400 uppercase tracking-wider">
+            {skill.category}
+          </span>
         </div>
+
         <span className="text-2xl font-bold text-neutral-300 group-hover:text-neutral-800 transition-colors duration-500 font-mono">
-          {skill.level}%
+          {skill.proficiency}%
         </span>
       </div>
 
@@ -80,7 +130,7 @@ function SkillBar({
         <div
           className="h-full rounded-full transition-all duration-1000 ease-out"
           style={{
-            width: animate ? `${skill.level}%` : "0%",
+            width: animate ? `${skill.proficiency}%` : "0%",
             transitionDelay: `${300 + index * 80}ms`,
             background: `linear-gradient(90deg, #333 0%, #666 100%)`,
           }}

@@ -1,10 +1,43 @@
-import { certificates } from "../../data/certificates";
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 import { useInView } from "../../hooks/useInView";
+
+interface Certificate {
+  title: string;
+  issuer: string;
+  issue_date: string | null;
+  credential_url: string;
+  image: string;
+}
 
 export default function Certificates() {
   const { ref, inView } = useInView(0.1);
 
-  if (certificates.length === 0) {
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCertificates() {
+      const { data, error } = await supabase
+        .from("certificates")
+        .select("title, issuer, issue_date, credential_url, image")
+        .order("sort_order", { ascending: true });
+
+      if (error) {
+        console.error("Failed to fetch certificates:", error);
+        setLoading(false);
+        return;
+      }
+
+      setCertificates(data ?? []);
+      setLoading(false);
+    }
+
+    fetchCertificates();
+  }, []);
+
+  // Keep previous behavior.
+  if (!loading && certificates.length === 0) {
     return null;
   }
 
@@ -29,49 +62,64 @@ export default function Certificates() {
             inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >
-          Credentials & <span className="italic text-neutral-500">Certifications</span>
+          Credentials &{" "}
+          <span className="italic text-neutral-500">Certifications</span>
         </h2>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {certificates.map((cert, i) => (
-            <a
-              key={i}
-              href={cert.credentialUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`group block p-6 rounded-2xl bg-white border border-neutral-100 hover:border-neutral-200 hover:shadow-xl hover:shadow-neutral-100/50 transition-all duration-500 ${
-                inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-              }`}
-              style={{ transitionDelay: `${200 + i * 150}ms` }}
-            >
-              {/* Certificate image */}
-              <div className="aspect-[4/3] rounded-xl overflow-hidden bg-neutral-100 mb-5">
-                <img
-                  src={cert.image}
-                  alt={cert.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                  onError={(e) => {
-                    const parent = (e.target as HTMLImageElement).parentElement;
-                    if (parent) {
-                      parent.innerHTML =
-                        '<div class="w-full h-full flex items-center justify-center bg-neutral-100"><span class="text-4xl">📜</span></div>';
-                    }
-                  }}
-                />
-              </div>
+          {loading ? (
+            <div className="text-sm text-neutral-400">
+              Loading certificates...
+            </div>
+          ) : (
+            certificates.map((cert, i) => (
+              <a
+                key={cert.credential_url}
+                href={cert.credential_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`group block p-6 rounded-2xl bg-white border border-neutral-100 hover:border-neutral-200 hover:shadow-xl hover:shadow-neutral-100/50 transition-all duration-500 ${
+                  inView
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-8"
+                }`}
+                style={{ transitionDelay: `${200 + i * 150}ms` }}
+              >
+                {/* Certificate image */}
+                <div className="aspect-[4/3] rounded-xl overflow-hidden bg-neutral-100 mb-5">
+                  <img
+                    src={cert.image}
+                    alt={cert.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                    onError={(e) => {
+                      const parent = (e.target as HTMLImageElement).parentElement;
+                      if (parent) {
+                        parent.innerHTML =
+                          '<div class="w-full h-full flex items-center justify-center bg-neutral-100"><span class="text-4xl">📜</span></div>';
+                      }
+                    }}
+                  />
+                </div>
 
-              <h3 className="font-semibold text-neutral-800 mb-1 group-hover:text-neutral-600 transition-colors">
-                {cert.name}
-              </h3>
-              <p className="text-sm text-neutral-500">{cert.organization}</p>
-              <p className="text-xs text-neutral-400 mt-2">{cert.date}</p>
+                <h3 className="font-semibold text-neutral-800 mb-1 group-hover:text-neutral-600 transition-colors">
+                  {cert.title}
+                </h3>
 
-              <div className="mt-4 text-xs text-neutral-400 group-hover:text-neutral-600 transition-colors flex items-center gap-1">
-                View Credential <span>↗</span>
-              </div>
-            </a>
-          ))}
+                <p className="text-sm text-neutral-500">{cert.issuer}</p>
+
+                <p className="text-xs text-neutral-400 mt-2">
+                  {cert.issue_date
+                    ? new Date(cert.issue_date).getFullYear()
+                    : "Date unavailable"}
+                </p>
+
+                <div className="mt-4 text-xs text-neutral-400 group-hover:text-neutral-600 transition-colors flex items-center gap-1">
+                  View Credential <span>↗</span>
+                </div>
+              </a>
+            ))
+          )}
         </div>
       </div>
     </section>

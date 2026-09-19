@@ -1,8 +1,39 @@
-import { currentlyLearning } from "../../data/learning";
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 import { useInView } from "../../hooks/useInView";
+
+interface LearningItem {
+  name: string;
+  description: string;
+  icon: string;
+  progress?: number;
+  status: "active" | "planned" | "paused";
+}
 
 export default function Learning() {
   const { ref, inView } = useInView(0.1);
+  const [learning, setLearning] = useState<LearningItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchLearning() {
+      const { data, error } = await supabase
+        .from("learning")
+        .select("name, description, icon, progress, status")
+        .order("sort_order", { ascending: true });
+
+      if (error) {
+        console.error("Failed to fetch learning:", error);
+        setLoading(false);
+        return;
+      }
+
+      setLearning(data ?? []);
+      setLoading(false);
+    }
+
+    fetchLearning();
+  }, []);
 
   return (
     <section className="py-32 relative">
@@ -38,52 +69,71 @@ export default function Learning() {
 
         {/* Learning cards */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {currentlyLearning.map((item, i) => (
-            <div
-              key={item.name}
-              className={`group relative p-6 rounded-2xl bg-white border border-neutral-100 hover:border-neutral-200 hover:shadow-xl hover:shadow-neutral-100/50 transition-all duration-500 overflow-hidden ${
-                inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-              }`}
-              style={{ transitionDelay: `${300 + i * 120}ms` }}
-            >
-              {/* Progress background fill */}
-              {item.progress && (
-                <div
-                  className="absolute bottom-0 left-0 w-full bg-neutral-50 transition-all duration-1000 ease-out"
-                  style={{
-                    height: inView ? `${item.progress}%` : "0%",
-                    transitionDelay: `${500 + i * 120}ms`,
-                  }}
-                />
-              )}
+          {loading ? (
+            <div className="col-span-full text-sm text-neutral-400">
+              Loading...
+            </div>
+          ) : (
+            learning.map((item, i) => (
+              <div
+                key={item.name}
+                className={`group relative p-6 rounded-2xl bg-white border border-neutral-100 hover:border-neutral-200 hover:shadow-xl hover:shadow-neutral-100/50 transition-all duration-500 overflow-hidden ${
+                  inView
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-8"
+                }`}
+                style={{ transitionDelay: `${300 + i * 120}ms` }}
+              >
+                {/* Progress background fill */}
+                {item.progress !== undefined && (
+                  <div
+                    className="absolute bottom-0 left-0 w-full bg-neutral-50 transition-all duration-1000 ease-out"
+                    style={{
+                      height: inView ? `${item.progress}%` : "0%",
+                      transitionDelay: `${500 + i * 120}ms`,
+                    }}
+                  />
+                )}
 
-              <div className="relative z-10">
-                <span className="text-3xl mb-4 block">{item.icon}</span>
-                <h3 className="font-semibold text-neutral-800 text-lg mb-1">{item.name}</h3>
-                <p className="text-sm text-neutral-500 mb-4">{item.description}</p>
+                <div className="relative z-10">
+                  <span className="text-3xl mb-4 block">{item.icon}</span>
 
-                {/* Status */}
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                      item.status === "active"
-                        ? "bg-emerald-50 text-emerald-600"
+                  <h3 className="font-semibold text-neutral-800 text-lg mb-1">
+                    {item.name}
+                  </h3>
+
+                  <p className="text-sm text-neutral-500 mb-4">
+                    {item.description}
+                  </p>
+
+                  {/* Status */}
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                        item.status === "active"
+                          ? "bg-emerald-50 text-emerald-600"
+                          : item.status === "planned"
+                          ? "bg-amber-50 text-amber-600"
+                          : "bg-neutral-100 text-neutral-500"
+                      }`}
+                    >
+                      {item.status === "active"
+                        ? "Active"
                         : item.status === "planned"
-                        ? "bg-amber-50 text-amber-600"
-                        : "bg-neutral-100 text-neutral-500"
-                    }`}
-                  >
-                    {item.status === "active" ? "Active" : item.status === "planned" ? "Planned" : "Paused"}
-                  </span>
-                  {item.progress !== undefined && (
-                    <span className="text-xs font-mono text-neutral-400">
-                      {item.progress}%
+                        ? "Planned"
+                        : "Paused"}
                     </span>
-                  )}
+
+                    {item.progress !== undefined && (
+                      <span className="text-xs font-mono text-neutral-400">
+                        {item.progress}%
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </section>

@@ -1,13 +1,60 @@
-import { lazy, Suspense, useState } from "react";
-import { profile } from "../../data/profile";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 import { useInView } from "../../hooks/useInView";
 import ResumeModal from "../ResumeModal";
 
 const CubeHero = lazy(() => import("../3D/CubeHero"));
 
+interface Stat {
+  label: string;
+  value: string;
+}
+
+interface Profile {
+  name: string;
+  heroSubtext: string;
+  stats: Stat[];
+}
+
 export default function Hero() {
   const { ref, inView } = useInView(0.1);
   const [showResume, setShowResume] = useState(false);
+
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const { data, error } = await supabase
+        .from("profile")
+        .select("name, hero_subtext, stats")
+        .limit(1);
+
+      if (error) {
+        console.error("Failed to fetch Hero profile:", error);
+        setLoading(false);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        console.error("No profile row found for Hero");
+        setLoading(false);
+        return;
+      }
+
+      const row = data[0];
+
+      setProfile({
+        name: row.name ?? "",
+        heroSubtext: row.hero_subtext ?? "",
+        stats: Array.isArray(row.stats) ? row.stats : [],
+      });
+
+      setLoading(false);
+    }
+
+    fetchProfile();
+  }, []);
 
   return (
     <section
@@ -27,17 +74,19 @@ export default function Hero() {
           {/* Left Column */}
           <div
             className={`flex flex-col transition-all duration-1000 ${
-              inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              inView
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-8"
             }`}
           >
-            {/* Name in same style and font */}
+            {/* Name */}
             <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 leading-[1.12] tracking-tight">
-              Gaurav Kumar Mishra
+              {loading ? "Loading..." : profile?.name}
             </h1>
 
             {/* Supporting text */}
             <p className="text-base sm:text-lg text-neutral-500 leading-relaxed max-w-md font-light mt-6">
-              {profile.heroSubtext}
+              {loading ? "Loading..." : profile?.heroSubtext}
             </p>
 
             {/* CTAs */}
@@ -57,9 +106,11 @@ export default function Hero() {
                   →
                 </span>
               </a>
-              <button 
+
+              <button
                 onClick={() => setShowResume(true)}
-                className="group flex items-center gap-2 px-7 py-3 bg-neutral-900 text-white rounded-xl text-sm font-medium hover:bg-neutral-800 transition-all duration-300 hover:shadow-lg hover:shadow-neutral-900/10">
+                className="group flex items-center gap-2 px-7 py-3 bg-neutral-900 text-white rounded-xl text-sm font-medium hover:bg-neutral-800 transition-all duration-300 hover:shadow-lg hover:shadow-neutral-900/10"
+              >
                 Resume
                 <span className="text-xs">↓</span>
               </button>
@@ -67,11 +118,12 @@ export default function Hero() {
 
             {/* Stats */}
             <div className="flex items-center gap-8 mt-10">
-              {profile.stats.map((stat) => (
+              {profile?.stats.map((stat) => (
                 <div key={stat.label} className="flex flex-col">
                   <span className="text-2xl font-bold text-neutral-900">
                     {stat.value}
                   </span>
+
                   <span className="text-[11px] text-neutral-400 uppercase tracking-wider mt-0.5">
                     {stat.label}
                   </span>
@@ -109,13 +161,15 @@ export default function Hero() {
         <span className="text-xs text-neutral-400 tracking-widest uppercase">
           Scroll
         </span>
+
         <div className="w-5 h-8 rounded-full border border-neutral-300 flex items-start justify-center p-1">
           <div className="w-1 h-2 rounded-full bg-neutral-400 animate-bounce" />
         </div>
       </div>
-       {showResume && (
+
+      {showResume && (
         <ResumeModal onClose={() => setShowResume(false)} />
-       )}
-     </section>
+      )}
+    </section>
   );
 }

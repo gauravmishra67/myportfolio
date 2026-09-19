@@ -1,7 +1,9 @@
 import { useState, useCallback } from "react";
 import LoadingScreen from "./components/LoadingScreen";
-import Navbar from "./components/Navbar";
 import CustomCursor from "./components/CustomCursor";
+import Admin from "./pages/Admin";
+
+import Navbar from "./components/Navbar";
 import Hero from "./components/sections/Hero";
 import About from "./components/sections/About";
 import Skills from "./components/sections/Skills";
@@ -21,16 +23,24 @@ export default function App() {
     setLoading(false);
   }, []);
 
+  // Simple admin route
+  if (window.location.pathname === "/admin") {
+    return <Admin />;
+  }
+
   return (
     <>
       {loading && <LoadingScreen onComplete={handleLoadComplete} />}
+
       <CustomCursor />
+
       <div
         className={`transition-opacity duration-700 ${
           loading ? "opacity-0" : "opacity-100"
         }`}
       >
         <Navbar />
+
         <main>
           <Hero />
           <About />
@@ -43,6 +53,7 @@ export default function App() {
           <Goals />
           <Contact />
         </main>
+
         <Footer />
       </div>
     </>

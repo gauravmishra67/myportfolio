@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { profile } from "../data/profile";
+import { supabase } from "../lib/supabase";
+
+interface Profile {
+  shortName: string;
+  logo: string;
+}
 
 const navLinks = [
   { label: "Home", href: "#home" },
@@ -14,6 +19,47 @@ const navLinks = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user.email) {
+        setIsAdmin(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("admin_users")
+        .select("role")
+        .eq("email", session.user.email)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Failed to check admin access:", error);
+        setIsAdmin(false);
+        return;
+      }
+
+      setIsAdmin(data?.role === "admin");
+    }
+
+    checkAdmin();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      checkAdmin();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 40);
@@ -22,12 +68,43 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    async function fetchProfile() {
+      const { data, error } = await supabase
+        .from("profile")
+        .select("short_name, logo")
+        .limit(1);
+
+      if (error) {
+        console.error("Failed to fetch Navbar profile:", error);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        console.error("No profile row found for Navbar");
+        return;
+      }
+
+      const row = data[0];
+
+      setProfile({
+        shortName: row.short_name ?? "",
+        logo: row.logo ?? "",
+      });
+    }
+
+    fetchProfile();
+  }, []);
+
+  useEffect(() => {
     if (menuOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [menuOpen]);
 
   const scrollTo = (href: string) => {
@@ -55,23 +132,27 @@ export default function Navbar() {
           {/* Left: Logo */}
           <a
             href="#home"
-            onClick={(e) => { e.preventDefault(); scrollTo("#home"); }}
+            onClick={(e) => {
+              e.preventDefault();
+              scrollTo("#home");
+            }}
             className="flex items-center gap-2.5 group"
           >
             <div className="w-8 h-8 rounded-lg bg-neutral-900 flex items-center justify-center overflow-hidden">
               <img
-                src={profile.logoImage}
-                alt="GM Logo"
+                src={profile?.logo || "/logo.png"}
+                alt="GKM Logo"
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
                   (e.target as HTMLImageElement).parentElement!.innerHTML =
-                    '<span class="text-white text-xs font-semibold">GM</span>';
+                    '<span class="text-white text-xs font-semibold">GKM</span>';
                 }}
               />
             </div>
+
             <span className="text-sm font-medium text-neutral-700 hidden sm:inline">
-              Gaurav K. Mishra
+              {profile?.shortName || "GKM"}
             </span>
           </a>
 
@@ -90,6 +171,18 @@ export default function Navbar() {
 
           {/* Right: CTA + Mobile Menu */}
           <div className="flex items-center gap-3">
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  window.location.href = "/admin";
+                }}
+                className="hidden sm:flex items-center gap-1.5 px-4 py-2 border border-neutral-200 text-neutral-700 text-sm font-medium rounded-xl hover:bg-neutral-100 transition-colors"
+              >
+                Admin
+              </button>
+            )}
+
             <button
               onClick={() => scrollTo("#contact")}
               className="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-neutral-900 text-white text-sm font-medium rounded-xl hover:bg-neutral-800 transition-colors"
@@ -133,6 +226,7 @@ export default function Navbar() {
         }`}
       >
         <div className="absolute inset-0 bg-white/95 backdrop-blur-xl" />
+
         <div className="relative flex flex-col items-center justify-center h-full gap-6">
           {navLinks.map((link, i) => (
             <button
@@ -142,17 +236,45 @@ export default function Navbar() {
               style={{
                 transitionDelay: menuOpen ? `${i * 50}ms` : "0ms",
                 opacity: menuOpen ? 1 : 0,
-                transform: menuOpen ? "translateY(0)" : "translateY(20px)",
+                transform: menuOpen
+                  ? "translateY(0)"
+                  : "translateY(20px)",
               }}
             >
               {link.label}
             </button>
           ))}
+
+          {/* Admin - normal mobile menu item */}
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                window.location.href = "/admin";
+              }}
+              className="text-2xl font-light text-neutral-800 hover:text-neutral-500 transition-all duration-300"
+              style={{
+                transitionDelay: menuOpen
+                  ? `${navLinks.length * 50}ms`
+                  : "0ms",
+                opacity: menuOpen ? 1 : 0,
+                transform: menuOpen
+                  ? "translateY(0)"
+                  : "translateY(20px)",
+              }}
+            >
+              Admin
+            </button>
+          )}
+
+          {/* Let's Talk - separate CTA */}
           <button
             onClick={() => scrollTo("#contact")}
             className="mt-4 px-6 py-3 bg-neutral-900 text-white rounded-xl text-lg font-medium"
             style={{
-              transitionDelay: menuOpen ? `${navLinks.length * 50}ms` : "0ms",
+              transitionDelay: menuOpen
+                ? `${(navLinks.length + (isAdmin ? 1 : 0)) * 50}ms`
+                : "0ms",
               opacity: menuOpen ? 1 : 0,
               transition: "all 0.4s ease",
             }}

@@ -1,5 +1,14 @@
-import { profile } from "../data/profile";
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 import { useInView } from "../hooks/useInView";
+
+interface Profile {
+  name: string;
+  location: string;
+  email: string;
+  github: string;
+  logo: string;
+}
 
 const footerLinks = [
   { label: "Home", href: "#home" },
@@ -11,6 +20,38 @@ const footerLinks = [
 
 export default function Footer() {
   const { ref, inView } = useInView(0.1);
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const { data, error } = await supabase
+        .from("profile")
+        .select("name, location, email, github_url, logo")
+        .limit(1);
+
+      if (error) {
+        console.error("Failed to fetch Footer profile:", error);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        console.error("No profile row found for Footer");
+        return;
+      }
+
+      const row = data[0];
+
+      setProfile({
+        name: row.name ?? "",
+        location: row.location ?? "",
+        email: row.email ?? "",
+        github: row.github_url ?? "",
+        logo: row.logo ?? "",
+      });
+    }
+
+    fetchProfile();
+  }, []);
 
   const scrollTo = (href: string) => {
     const el = document.querySelector(href);
@@ -38,18 +79,18 @@ export default function Footer() {
             className="group flex items-center gap-3 text-left"
           >
             <img
-              src={profile.logoImage}
-              alt={`${profile.name} logo`}
+              src={profile?.logo || "/logo.png"}
+              alt={`${profile?.name || "GKM"} logo`}
               className="w-9 h-9 rounded-lg object-cover border border-white/10 group-hover:border-white/25 transition-colors duration-300"
             />
 
             <div>
               <p className="text-sm font-medium text-white">
-                {profile.name}
+                {profile?.name || "Gaurav Kumar Mishra"}
               </p>
 
               <p className="text-xs text-neutral-600 mt-0.5">
-                {profile.location}
+                {profile?.location || "Nepal"}
               </p>
             </div>
           </button>
@@ -70,14 +111,14 @@ export default function Footer() {
           {/* Contact */}
           <div className="flex items-center gap-5">
             <a
-              href={`mailto:${profile.email}`}
+              href={`mailto:${profile?.email || ""}`}
               className="text-xs text-neutral-50 hover:text-white transition-colors duration-300"
             >
               Email ↗
             </a>
 
             <a
-              href={profile.github}
+              href={profile?.github || "#"}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-neutral-50 hover:text-white transition-colors duration-300"
@@ -94,12 +135,13 @@ export default function Footer() {
           }`}
         >
           <p className="text-[11px] text-neutral-70">
-            © {new Date().getFullYear()} {profile.name}. All rights reserved.
+            © {new Date().getFullYear()}{" "}
+            {profile?.name || "Gaurav Kumar Mishra"}. All rights reserved.
           </p>
 
           <div className="flex items-center gap-5">
             <p className="text-[11px] text-neutral-70">
-             Stay Healthy, Stay Happy! ❤️ 
+              Stay Healthy, Stay Happy! ❤️
             </p>
 
             <button

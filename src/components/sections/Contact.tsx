@@ -1,15 +1,71 @@
-import { useState, type FormEvent } from "react";
-import { profile } from "../../data/profile";
+import { useEffect, useState, type FormEvent } from "react";
+import { supabase } from "../../lib/supabase";
 import { useInView } from "../../hooks/useInView";
+
+interface Profile {
+  contactCTA: string;
+  email: string;
+  phone: string;
+  github: string;
+  formspreeEndpoint: string;
+}
 
 export default function Contact() {
   const { ref, inView } = useInView(0.1);
-  const [formState, setFormState] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [formData, setFormData] = useState({ name: "", email: "", message: "" });
+
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [formState, setFormState] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const { data, error } = await supabase
+        .from("profile")
+        .select(
+          "contact_cta, email, phone, github_url, formspree_endpoint"
+        )
+        .limit(1);
+
+      if (error) {
+        console.error("Failed to fetch Contact profile:", error);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        console.error("No profile row found for Contact");
+        return;
+      }
+
+      const row = data[0];
+
+      setProfile({
+        contactCTA: row.contact_cta ?? "",
+        email: row.email ?? "",
+        phone: row.phone ?? "",
+        github: row.github_url ?? "",
+        formspreeEndpoint: row.formspree_endpoint ?? "",
+      });
+    }
+
+    fetchProfile();
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setFormState("loading");
+
+    if (!profile?.formspreeEndpoint) {
+      console.error("Formspree endpoint is missing.");
+      setFormState("error");
+      return;
+    }
 
     try {
       const res = await fetch(profile.formspreeEndpoint, {
@@ -61,7 +117,7 @@ export default function Contact() {
                 inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               }`}
             >
-              {profile.contactCTA}
+              {profile?.contactCTA || "Let's build something worth remembering."}
             </h2>
 
             <p
@@ -75,41 +131,47 @@ export default function Contact() {
             {/* Contact info */}
             <div
               className={`space-y-5 transition-all duration-700 delay-300 ${
-                inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+                inView
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-6"
               }`}
             >
               <a
-                href={`mailto:${profile.email}`}
+                href={`mailto:${profile?.email || ""}`}
                 className="group flex items-center gap-4 p-4 rounded-xl hover:bg-neutral-50 transition-colors"
               >
                 <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-sm">
                   ✉️
                 </div>
                 <div>
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider">Email</p>
+                  <p className="text-xs text-neutral-400 uppercase tracking-wider">
+                    Email
+                  </p>
                   <p className="text-sm text-neutral-700 group-hover:text-neutral-900 transition-colors">
-                    {profile.email}
+                    {profile?.email || ""}
                   </p>
                 </div>
               </a>
 
               <a
-                href={`tel:${profile.phone}`}
+                href={`tel:${profile?.phone || ""}`}
                 className="group flex items-center gap-4 p-4 rounded-xl hover:bg-neutral-50 transition-colors"
               >
                 <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-sm">
                   📱
                 </div>
                 <div>
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider">Phone</p>
+                  <p className="text-xs text-neutral-400 uppercase tracking-wider">
+                    Phone
+                  </p>
                   <p className="text-sm text-neutral-700 group-hover:text-neutral-900 transition-colors">
-                    {profile.phone}
+                    {profile?.phone || ""}
                   </p>
                 </div>
               </a>
 
               <a
-                href={profile.github}
+                href={profile?.github || "#"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group flex items-center gap-4 p-4 rounded-xl hover:bg-neutral-50 transition-colors"
@@ -118,7 +180,9 @@ export default function Contact() {
                   💻
                 </div>
                 <div>
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider">GitHub</p>
+                  <p className="text-xs text-neutral-400 uppercase tracking-wider">
+                    GitHub
+                  </p>
                   <p className="text-sm text-neutral-700 group-hover:text-neutral-900 transition-colors">
                     GitHub Profile ↗
                   </p>
@@ -130,7 +194,9 @@ export default function Contact() {
           {/* Right: Form */}
           <div
             className={`transition-all duration-700 delay-300 ${
-              inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              inView
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-8"
             }`}
           >
             {formState === "success" ? (
@@ -167,7 +233,12 @@ export default function Contact() {
                     type="text"
                     required
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        name: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 text-neutral-800 text-sm placeholder:text-neutral-300 focus:outline-none focus:border-neutral-400 focus:bg-white transition-all"
                     placeholder="Your name"
                     disabled={formState === "loading"}
@@ -187,7 +258,12 @@ export default function Contact() {
                     type="email"
                     required
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        email: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 text-neutral-800 text-sm placeholder:text-neutral-300 focus:outline-none focus:border-neutral-400 focus:bg-white transition-all"
                     placeholder="your@email.com"
                     disabled={formState === "loading"}
@@ -207,7 +283,12 @@ export default function Contact() {
                     required
                     rows={5}
                     value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        message: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 text-neutral-800 text-sm placeholder:text-neutral-300 focus:outline-none focus:border-neutral-400 focus:bg-white transition-all resize-none"
                     placeholder="Tell me about your project or idea..."
                     disabled={formState === "loading"}

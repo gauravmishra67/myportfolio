@@ -1,8 +1,42 @@
-import { education } from "../../data/education";
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 import { useInView } from "../../hooks/useInView";
+
+interface EducationItem {
+  level: string;
+  institution: string;
+  degree: string;
+  gpa: string;
+  year: string;
+  status: "completed" | "ongoing";
+  description?: string;
+}
 
 export default function Education() {
   const { ref, inView } = useInView(0.1);
+
+  const [education, setEducation] = useState<EducationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchEducation() {
+      const { data, error } = await supabase
+        .from("education")
+        .select("level, institution, degree, gpa, year, status, description")
+        .order("sort_order", { ascending: true });
+
+      if (error) {
+        console.error("Failed to fetch education:", error);
+        setLoading(false);
+        return;
+      }
+
+      setEducation(data ?? []);
+      setLoading(false);
+    }
+
+    fetchEducation();
+  }, []);
 
   return (
     <section id="education" className="py-32 relative">
@@ -29,50 +63,75 @@ export default function Education() {
         </h2>
 
         <div className="grid md:grid-cols-3 gap-6">
-          {education.map((edu, i) => (
-            <div
-              key={i}
-              className={`group p-8 rounded-2xl bg-white border border-neutral-100 hover:border-neutral-200 hover:shadow-xl hover:shadow-neutral-100/50 transition-all duration-500 relative overflow-hidden ${
-                inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-              }`}
-              style={{ transitionDelay: `${200 + i * 150}ms` }}
-            >
-              {/* Status indicator */}
-              {edu.status === "ongoing" && (
-                <div className="absolute top-4 right-4">
-                  <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-medium rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Currently
-                  </span>
-                </div>
-              )}
-
-              <div className="text-4xl font-bold text-neutral-100 font-serif mb-4 group-hover:text-neutral-200 transition-colors">
-                {String(i + 1).padStart(2, "0")}
-              </div>
-
-              <h3 className="font-serif text-xl font-bold text-neutral-900 mb-1">
-                {edu.level}
-              </h3>
-              <p className="text-sm text-neutral-500 mb-1">{edu.institution}</p>
-              <p className="text-xs text-neutral-400 mb-4">{edu.degree}</p>
-
-              <div className="flex items-center justify-between pt-4 border-t border-neutral-100">
-                <div>
-                  <span className="text-xs text-neutral-400 uppercase tracking-wider">GPA</span>
-                  <p className="text-lg font-bold text-neutral-800 font-mono">{edu.gpa}</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs text-neutral-400 uppercase tracking-wider">Year</span>
-                  <p className="text-sm font-medium text-neutral-600">{edu.year}</p>
-                </div>
-              </div>
-
-              {edu.description && (
-                <p className="text-xs text-neutral-400 mt-4 leading-relaxed">{edu.description}</p>
-              )}
+          {loading ? (
+            <div className="text-sm text-neutral-400">
+              Loading education...
             </div>
-          ))}
+          ) : (
+            education.map((edu, i) => (
+              <div
+                key={i}
+                className={`group p-8 rounded-2xl bg-white border border-neutral-100 hover:border-neutral-200 hover:shadow-xl hover:shadow-neutral-100/50 transition-all duration-500 relative overflow-hidden ${
+                  inView
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-8"
+                }`}
+                style={{ transitionDelay: `${200 + i * 150}ms` }}
+              >
+                {/* Status indicator */}
+                {edu.status === "ongoing" && (
+                  <div className="absolute top-4 right-4">
+                    <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-medium rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Currently
+                    </span>
+                  </div>
+                )}
+
+                <div className="text-4xl font-bold text-neutral-100 font-serif mb-4 group-hover:text-neutral-200 transition-colors">
+                  {String(i + 1).padStart(2, "0")}
+                </div>
+
+                <h3 className="font-serif text-xl font-bold text-neutral-900 mb-1">
+                  {edu.level}
+                </h3>
+
+                <p className="text-sm text-neutral-500 mb-1">
+                  {edu.institution}
+                </p>
+
+                <p className="text-xs text-neutral-400 mb-4">
+                  {edu.degree}
+                </p>
+
+                <div className="flex items-center justify-between pt-4 border-t border-neutral-100">
+                  <div>
+                    <span className="text-xs text-neutral-400 uppercase tracking-wider">
+                      GPA
+                    </span>
+                    <p className="text-lg font-bold text-neutral-800 font-mono">
+                      {edu.gpa}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-xs text-neutral-400 uppercase tracking-wider">
+                      Year
+                    </span>
+                    <p className="text-sm font-medium text-neutral-600">
+                      {edu.year}
+                    </p>
+                  </div>
+                </div>
+
+                {edu.description && (
+                  <p className="text-xs text-neutral-400 mt-4 leading-relaxed">
+                    {edu.description}
+                  </p>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </section>
