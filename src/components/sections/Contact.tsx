@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Turnstile } from "@marsidev/react-turnstile";
 import { supabase } from "../../lib/supabase";
 import { useInView } from "../../hooks/useInView";
 
@@ -14,6 +15,7 @@ export default function Contact() {
   const { ref, inView } = useInView(0.1);
 
   const [profile, setProfile] = useState<Profile | null>(null);
+
   const [formState, setFormState] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -23,6 +25,8 @@ export default function Contact() {
     email: "",
     message: "",
   });
+
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   useEffect(() => {
     async function fetchProfile() {
@@ -59,13 +63,19 @@ export default function Contact() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setFormState("loading");
+
+    if (!turnstileToken) {
+      setFormState("error");
+      return;
+    }
 
     if (!profile?.formspreeEndpoint) {
       console.error("Formspree endpoint is missing.");
       setFormState("error");
       return;
     }
+
+    setFormState("loading");
 
     try {
       const res = await fetch(profile.formspreeEndpoint, {
@@ -74,18 +84,39 @@ export default function Contact() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          "cf-turnstile-response": turnstileToken,
+        }),
       });
 
       if (res.ok) {
         setFormState("success");
-        setFormData({ name: "", email: "", message: "" });
+        setFormData({
+          name: "",
+          email: "",
+          message: "",
+        });
+        setTurnstileToken("");
       } else {
+        const errorData = await res.json().catch(() => null);
+
+        console.error("Formspree submission failed:", {
+          status: res.status,
+          data: errorData,
+        });
+
         setFormState("error");
       }
-    } catch {
+    } catch (error) {
+      console.error("Contact form submission error:", error);
       setFormState("error");
     }
+  };
+
+  const handleSendAnotherMessage = () => {
+    setFormState("idle");
+    setTurnstileToken("");
   };
 
   return (
@@ -104,6 +135,7 @@ export default function Contact() {
           }`}
         >
           <div className="w-8 h-px bg-neutral-400" />
+
           <span className="text-xs tracking-[0.25em] uppercase text-neutral-400 font-medium">
             Contact
           </span>
@@ -114,10 +146,13 @@ export default function Contact() {
           <div>
             <h2
               className={`font-serif text-4xl sm:text-5xl font-bold text-neutral-900 leading-tight mb-6 transition-all duration-700 delay-100 ${
-                inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+                inView
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-8"
               }`}
             >
-              {profile?.contactCTA || "Let's build something worth remembering."}
+              {profile?.contactCTA ||
+                "Let's build something worth remembering."}
             </h2>
 
             <p
@@ -125,7 +160,8 @@ export default function Contact() {
                 inView ? "opacity-100" : "opacity-0"
               }`}
             >
-              I'm always interested in hearing about new projects, creative ideas, or opportunities to collaborate.
+              I'm always interested in hearing about new projects, creative
+              ideas, or opportunities to collaborate.
             </p>
 
             {/* Contact info */}
@@ -143,10 +179,12 @@ export default function Contact() {
                 <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-sm">
                   ✉️
                 </div>
+
                 <div>
                   <p className="text-xs text-neutral-400 uppercase tracking-wider">
                     Email
                   </p>
+
                   <p className="text-sm text-neutral-700 group-hover:text-neutral-900 transition-colors">
                     {profile?.email || ""}
                   </p>
@@ -160,10 +198,12 @@ export default function Contact() {
                 <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-sm">
                   📱
                 </div>
+
                 <div>
                   <p className="text-xs text-neutral-400 uppercase tracking-wider">
                     Phone
                   </p>
+
                   <p className="text-sm text-neutral-700 group-hover:text-neutral-900 transition-colors">
                     {profile?.phone || ""}
                   </p>
@@ -179,10 +219,12 @@ export default function Contact() {
                 <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-sm">
                   💻
                 </div>
+
                 <div>
                   <p className="text-xs text-neutral-400 uppercase tracking-wider">
                     GitHub
                   </p>
+
                   <p className="text-sm text-neutral-700 group-hover:text-neutral-900 transition-colors">
                     GitHub Profile ↗
                   </p>
@@ -202,14 +244,18 @@ export default function Contact() {
             {formState === "success" ? (
               <div className="flex flex-col items-center justify-center h-full text-center p-12 rounded-3xl bg-white border border-neutral-100">
                 <div className="text-5xl mb-6">✨</div>
+
                 <h3 className="font-serif text-2xl font-bold text-neutral-900 mb-3">
                   Message Sent!
                 </h3>
+
                 <p className="text-neutral-500 mb-6">
-                  Thank you for reaching out. I'll get back to you as soon as possible.
+                  Thank you for reaching out. I'll get back to you as soon as
+                  possible.
                 </p>
+
                 <button
-                  onClick={() => setFormState("idle")}
+                  onClick={handleSendAnotherMessage}
                   className="px-6 py-2.5 text-sm font-medium text-neutral-600 hover:text-neutral-900 border border-neutral-200 rounded-xl hover:bg-neutral-50 transition-all"
                 >
                   Send Another Message
@@ -220,6 +266,7 @@ export default function Contact() {
                 onSubmit={handleSubmit}
                 className="p-8 md:p-10 rounded-3xl bg-white border border-neutral-100 shadow-sm space-y-6"
               >
+                {/* Name */}
                 <div>
                   <label
                     htmlFor="name"
@@ -227,6 +274,7 @@ export default function Contact() {
                   >
                     Name
                   </label>
+
                   <input
                     id="name"
                     name="name"
@@ -245,6 +293,7 @@ export default function Contact() {
                   />
                 </div>
 
+                {/* Email */}
                 <div>
                   <label
                     htmlFor="email"
@@ -252,6 +301,7 @@ export default function Contact() {
                   >
                     Email
                   </label>
+
                   <input
                     id="email"
                     name="email"
@@ -270,6 +320,7 @@ export default function Contact() {
                   />
                 </div>
 
+                {/* Message */}
                 <div>
                   <label
                     htmlFor="message"
@@ -277,6 +328,7 @@ export default function Contact() {
                   >
                     Message
                   </label>
+
                   <textarea
                     id="message"
                     name="message"
@@ -295,17 +347,38 @@ export default function Contact() {
                   />
                 </div>
 
+                {/* Cloudflare Turnstile */}
+                <div className="flex justify-center">
+                  <Turnstile
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                    onSuccess={(token) => {
+                      setTurnstileToken(token);
+                      setFormState("idle");
+                    }}
+                    onError={() => {
+                      setTurnstileToken("");
+                      setFormState("error");
+                    }}
+                    onExpire={() => {
+                      setTurnstileToken("");
+                    }}
+                  />
+                </div>
+
+                {/* Error */}
                 {formState === "error" && (
                   <div className="p-4 rounded-xl bg-red-50 border border-red-100">
                     <p className="text-sm text-red-600">
-                      Something went wrong. Please try again or email me directly.
+                      Something went wrong. Please try again or email me
+                      directly.
                     </p>
                   </div>
                 )}
 
+                {/* Submit */}
                 <button
                   type="submit"
-                  disabled={formState === "loading"}
+                  disabled={formState === "loading" || !turnstileToken}
                   className="w-full py-3.5 px-6 bg-neutral-900 text-white text-sm font-medium rounded-xl hover:bg-neutral-800 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {formState === "loading" ? (
@@ -324,6 +397,7 @@ export default function Contact() {
                           strokeLinecap="round"
                           className="opacity-25"
                         />
+
                         <path
                           d="M4 12a8 8 0 018-8"
                           stroke="currentColor"
@@ -331,6 +405,7 @@ export default function Contact() {
                           strokeLinecap="round"
                         />
                       </svg>
+
                       Sending...
                     </>
                   ) : (
